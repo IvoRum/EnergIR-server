@@ -1,6 +1,6 @@
 package com.example.energier.server.filter;
 
-import com.terra.server.jwt.JwtUtil;
+import com.example.energier.server.jwt.JwtUtil;
 import com.example.energier.server.repository.UserRepository;
 import com.example.energier.server.type.Role;
 import jakarta.servlet.FilterChain;

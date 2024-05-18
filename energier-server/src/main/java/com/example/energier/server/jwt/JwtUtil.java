@@ -1,4 +1,4 @@
-package com.terra.server.jwt;
+package com.example.energier.server.jwt;
 
 import io.jsonwebtoken.*;
 import org.springframework.security.core.userdetails.UserDetails;

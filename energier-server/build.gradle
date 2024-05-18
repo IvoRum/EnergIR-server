@@ -8,7 +8,7 @@ group = 'com.example'
 version = '0.0.1-SNAPSHOT'
 
 java {
-    sourceCompatibility = '22'
+    sourceCompatibility = '17'
 }
 
 repositories {
@@ -28,7 +28,6 @@ dependencies {
     implementation group: 'io.jsonwebtoken', name: 'jjwt', version: '0.9.1'
     //mongo
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-mongodb', version: '3.2.4'
-    testImplementation group: 'de.flapdoodle.embed', name: 'de.flapdoodle.embed.mongo.spring30x', version: '4.11.0'
     testImplementation group: 'de.flapdoodle.embed', name: 'de.flapdoodle.embed.mongo', version: '3.2.4'
     //lombok
     compileOnly 'org.projectlombok:lombok'

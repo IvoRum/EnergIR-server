@@ -3,17 +3,17 @@ spring:
     jwtSecret: s3cr37
     jwtExpirationMs: 36000000
   datasource:
-    url: ${{POSGRE_URL}}
+    url: jdbc:postgresql://ep-lively-queen-99751851.eu-central-1.aws.neon.tech/energyx?user=IvoRum&password=RXvnYfB9m1Uz&sslmode=require
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: create-drop
+     # ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
         format_sql: true
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-server:
-  address: 172.20.10.2
-  port: 8081
+# server:
+ # address: 172.20.10.2
+ # port: 8081
