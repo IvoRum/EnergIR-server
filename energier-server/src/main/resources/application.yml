@@ -3,7 +3,7 @@ spring:
     jwtSecret: s3cr37
     jwtExpirationMs: 36000000
   datasource:
-    url: URL
+    url: ${{POSGRE_URL}}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
