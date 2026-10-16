@@ -2,15 +2,32 @@ spring:
   app:
     jwtSecret: s3cr37
     jwtExpirationMs: 36000000
+  # Mongo is currently unused: TerraLogger builds its own client (hardcoded Atlas URI).
+  # Without this, Spring autoconfigures a client pointed at localhost:27017 and a monitor
+  # thread spams connection-refused warnings on every startup.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
   datasource:
     url: jdbc:postgresql://ep-lively-queen-99751851.eu-central-1.aws.neon.tech/energyx?user=IvoRum&password=RXvnYfB9m1Uz&sslmode=require
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-     # ddl-auto: create-drop
+     # Sync the remote schema to the entities (adds missing columns/tables).
+     # Switch to create-drop only on a throwaway database — it drops data on shutdown.
+     ddl-auto: update
     show-sql: true
     properties:
       hibernate:
+        # The public schema holds the legacy app's tables (company, kpi, production, water…),
+        # and `electric_meter` there has an incompatible schema. Keep this service's tables in
+        # their own schema so they don't collide with (or overwrite) the legacy data.
+        default_schema: energir
+        # Create the `energir` schema automatically on a fresh database.
+        hbm2ddl:
+          create_namespaces: true
         format_sql: true
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect

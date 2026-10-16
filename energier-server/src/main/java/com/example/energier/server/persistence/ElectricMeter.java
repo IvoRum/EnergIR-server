@@ -15,7 +15,8 @@ import java.time.Instant;
 public class ElectricMeter {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "energir_electric_meter_seq")
+    @SequenceGenerator(name = "energir_electric_meter_seq", sequenceName = "energir_electric_meter_seq", allocationSize = 1)
     private Integer id;
 
     @Column(name = "edge_id", nullable = false)

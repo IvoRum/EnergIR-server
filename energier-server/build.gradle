@@ -26,6 +26,8 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     //security
     implementation group: 'io.jsonwebtoken', name: 'jjwt', version: '0.9.1'
+    // jjwt 0.9.1 uses javax.xml.bind.DatatypeConverter (JAXB), removed from the JDK in Java 11+
+    implementation 'javax.xml.bind:jaxb-api:2.3.1'
     //mongo
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-mongodb', version: '3.2.4'
     testImplementation group: 'de.flapdoodle.embed', name: 'de.flapdoodle.embed.mongo', version: '3.2.4'

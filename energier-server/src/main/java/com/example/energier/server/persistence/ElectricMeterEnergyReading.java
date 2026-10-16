@@ -15,7 +15,8 @@ import java.time.Instant;
 public class ElectricMeterEnergyReading {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "energir_electric_meter_energy_reading_seq")
+    @SequenceGenerator(name = "energir_electric_meter_energy_reading_seq", sequenceName = "energir_electric_meter_energy_reading_seq", allocationSize = 1)
     private Long id;
 
     @ManyToOne(optional = false)
