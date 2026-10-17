@@ -1,0 +1,44 @@
+docs {
+  # EnergIR Server
+
+  Spring Boot service. Default base URL: `http://localhost:8080`.
+
+  ## How to run the server
+  1. Use JDK 17/21 (JDK 26 breaks Lombok).
+  2. `gradlew.bat bootRun` (or run from IntelliJ).
+  3. Tables are created under the `energir` schema on first start
+     (`spring.jpa.hibernate.ddl-auto=update`).
+
+  ## Auth
+  - Register then authenticate. Both live under **`/api/vi/auth`**
+    (a typo for `v1` in `AuthenticationController.java`; `SecurityConfig`
+    permits that exact prefix). Use it exactly as written.
+  - Both requests auto-save the returned `access_token` into the `token`
+    environment variable (see each request's post-response script).
+  - Every meters/readings request sends `Authorization: Bearer {{token}}`.
+
+  ## Gotchas
+  - `Instant` fields (e.g. `createdOn`) are **epoch seconds** as a decimal
+    number, e.g. `1792126347.05915` — not an ISO string.
+  - `POST /api/vi/auth/register` returns **303** (empty body) when the email
+    is already registered.
+  - `POST /api/vi/auth/authenticate` returns **403** for a bad password, or
+    for a banned account (banned returns 200 with `access_token: null`).
+  - `Auth` endpoints are public; everything else returns **403** without a
+    valid token.
+  - `POST /api/v1/meters` is idempotent on `(edgeId, edgeMeterId)` — re-posting
+    the same pair returns the existing meter with **201**, not a duplicate.
+  - `GET /api/v1/meters/{id}/readings` returns **oldest first** (no "latest"
+    flag). Narrow with `limit` (default 100, max 1000) and `since`.
+  - There is no delete endpoint for meters.
+
+  ## Run order
+  1. `Auth / Register`
+  2. `Auth / Authenticate`
+  3. `Electric Meters / Create Meter` (or `Get All Meters`)
+  4. `Electric Meter Readings / Create Reading`
+}
+
+auth {
+  mode: none
+}

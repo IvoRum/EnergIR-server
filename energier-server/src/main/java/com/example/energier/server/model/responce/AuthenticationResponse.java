@@ -14,4 +14,9 @@ public class AuthenticationResponse {
     @JsonProperty("access_token")
     private String accessToken;
     private String role;
+
+    /** The single company this user is attached to (null until one is created). */
+    private Integer companyId;
+    private String companyCode;
+    private String companyName;
 }

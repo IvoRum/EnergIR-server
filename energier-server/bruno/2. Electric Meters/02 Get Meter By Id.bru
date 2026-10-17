@@ -1,0 +1,29 @@
+meta {
+  name: Get Meter By Id
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/meters/{{meterId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("status is 200 or 404", function() {
+    expect([200, 404]).to.include(res.getStatus())
+  })
+
+  test("returns the meter when found", function() {
+    if (res.getStatus() === 200) {
+      expect(res.getBody().id).to.be.a("number")
+      expect(res.getBody().edgeId).to.be.a("string")
+      expect(res.getBody().name).to.be.a("string")
+    }
+  })
+}

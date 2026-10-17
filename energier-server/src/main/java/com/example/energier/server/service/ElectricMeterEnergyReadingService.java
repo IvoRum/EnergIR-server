@@ -5,6 +5,7 @@ import com.example.energier.server.model.responce.ElectricMeterEnergyReadingResp
 import com.example.energier.server.persistence.ElectricMeter;
 import com.example.energier.server.persistence.ElectricMeterEnergyReading;
 import com.example.energier.server.repository.ElectricMeterEnergyReadingRepository;
+import com.example.energier.server.repository.DeviceRepository;
 import com.example.energier.server.repository.ElectricMeterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,7 @@ public class ElectricMeterEnergyReadingService {
 
     private final ElectricMeterEnergyReadingRepository readingRepository;
     private final ElectricMeterRepository meterRepository;
+    private final DeviceRepository deviceRepository;
 
     public ElectricMeterEnergyReadingResponse create(CreateElectricMeterEnergyReadingRequest request) {
         ElectricMeter meter = meterRepository.findByEdgeIdAndEdgeMeterId(request.getEdgeId(), request.getEdgeMeterId())
@@ -30,6 +32,9 @@ public class ElectricMeterEnergyReadingService {
                         "No meter registered for edgeId=" + request.getEdgeId() + ", edgeMeterId=" + request.getEdgeMeterId()));
 
         Instant createdOn = request.getCreatedOn() != null ? request.getCreatedOn() : Instant.now();
+
+        // Uploading a reading proves the device is alive.
+        touchDevice(meter);
 
         var existing = readingRepository.findByMeter_IdAndCreatedOn(meter.getId(), createdOn);
         if (existing.isPresent()) {
@@ -54,8 +59,17 @@ public class ElectricMeterEnergyReadingService {
         return toResponse(readingRepository.save(reading));
     }
 
-    public List<ElectricMeterEnergyReadingResponse> getHistory(Integer meterId, Instant since, int limit) {
-        if (!meterRepository.existsById(meterId)) {
+    /** Marks the device that owns this meter as seen just now. */
+    private void touchDevice(ElectricMeter meter) {
+        deviceRepository.findByCompany_IdAndCode(meter.getCompany().getId(), meter.getEdgeId())
+                .ifPresent(device -> {
+                    device.setLastSeen(Instant.now());
+                    device.setStatus("online");
+                    deviceRepository.save(device);
+                });
+    }
+
+    public List<ElectricMeterEnergyReadingResponse> getHistory(Integer meterId, Instant since, int limit) {        if (!meterRepository.existsById(meterId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Meter with id " + meterId + " not found");
         }
 

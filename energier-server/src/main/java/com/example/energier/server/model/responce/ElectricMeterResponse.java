@@ -21,4 +21,7 @@ public class ElectricMeterResponse {
     private String model;
     private boolean active;
     private Instant createdOn;
+
+    /** Latest reading for this meter, or null when it has never reported. */
+    private ElectricMeterEnergyReadingResponse latestReading;
 }

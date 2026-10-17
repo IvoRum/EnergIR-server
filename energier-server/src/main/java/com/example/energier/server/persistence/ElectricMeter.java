@@ -11,13 +11,21 @@ import java.time.Instant;
 @AllArgsConstructor
 @Entity
 @Setter
-@Table(name = "electric_meter", uniqueConstraints = @UniqueConstraint(columnNames = {"edge_id", "edge_meter_id"}))
+@Table(
+        name = "electric_meter",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"company_id", "edge_id", "edge_meter_id"})
+)
 public class ElectricMeter {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "energir_electric_meter_seq")
     @SequenceGenerator(name = "energir_electric_meter_seq", sequenceName = "energir_electric_meter_seq", allocationSize = 1)
     private Integer id;
+
+    /** The company (tenant) this meter belongs to. */
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
 
     @Column(name = "edge_id", nullable = false)
     private String edgeId;
