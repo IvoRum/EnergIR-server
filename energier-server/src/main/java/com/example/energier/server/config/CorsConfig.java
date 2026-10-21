@@ -13,7 +13,12 @@ public class CorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins("*")
-                .allowedMethods("HEAD", "GET", "PUT", "POST", "DELETE", "PATCH");
+                .allowedMethods("HEAD", "GET", "PUT", "POST", "DELETE", "PATCH", "OPTIONS")
+                // The browser sends Authorization and X-Company-Code; without these
+                // the preflight is rejected with 403 "Invalid CORS request".
+                .allowedHeaders("*")
+                .exposedHeaders("Authorization")
+                .maxAge(3600);
     }
 }
 
