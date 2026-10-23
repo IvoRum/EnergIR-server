@@ -12,6 +12,8 @@ import java.util.Optional;
 public interface WaterReadingRepository extends JpaRepository<WaterReading, Long> {
     List<WaterReading> findByMeter_IdOrderByRecordedOnDesc(Integer meterId);
 
+    List<WaterReading> findByMeter_IdOrderByRecordedOnAsc(Integer meterId);
+
     List<WaterReading> findByMeter_IdAndRecordedOnGreaterThanEqualOrderByRecordedOnAsc(Integer meterId, Instant from);
 
     Optional<WaterReading> findByIdAndMeter_Id(Long id, Integer meterId);

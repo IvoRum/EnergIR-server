@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface ProductionRecordRepository extends JpaRepository<ProductionRecord, Long> {
     List<ProductionRecord> findByProduct_IdOrderByRecordedOnDesc(Integer productId);
 
+    List<ProductionRecord> findByProduct_IdOrderByRecordedOnAsc(Integer productId);
+
     Optional<ProductionRecord> findByIdAndProduct_Id(Long id, Integer productId);
 
     void deleteAllByProduct_Id(Integer productId);

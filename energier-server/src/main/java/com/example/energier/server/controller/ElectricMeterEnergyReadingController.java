@@ -1,6 +1,7 @@
 package com.example.energier.server.controller;
 
 import com.example.energier.server.model.request.CreateElectricMeterEnergyReadingRequest;
+import com.example.energier.server.model.request.CreateMeterReadingRequest;
 import com.example.energier.server.model.responce.ElectricMeterEnergyReadingResponse;
 import com.example.energier.server.service.CompanyService;
 import com.example.energier.server.service.ElectricMeterEnergyReadingService;
@@ -30,6 +31,17 @@ public class ElectricMeterEnergyReadingController {
             @RequestBody CreateElectricMeterEnergyReadingRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(readingService.create(request));
+    }
+
+    @PostMapping("/api/v1/meters/{meterId}/readings")
+    public ResponseEntity<ElectricMeterEnergyReadingResponse> createForMeter(
+            Authentication authentication,
+            @PathVariable Integer meterId,
+            @RequestBody CreateMeterReadingRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(readingService.createForMeter(companyId, meterId, request));
     }
 
     @GetMapping("/api/v1/meters/{meterId}/readings")

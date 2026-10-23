@@ -17,4 +17,8 @@ public interface ElectricMeterEnergyReadingRepository extends JpaRepository<Elec
 
     List<ElectricMeterEnergyReading> findByMeter_IdAndCreatedOnGreaterThanEqualOrderByIdAsc(
             Integer meterId, Instant since, Pageable pageable);
+
+    List<ElectricMeterEnergyReading> findByMeter_IdOrderByCreatedOnAsc(Integer meterId);
+
+    void deleteAllByMeter_Id(Integer meterId);
 }

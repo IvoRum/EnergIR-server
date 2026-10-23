@@ -59,4 +59,14 @@ public class ElectricMeterController {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
         return ResponseEntity.ok(electricMeterService.update(companyId, id, request));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        electricMeterService.delete(companyId, id);
+        return ResponseEntity.noContent().build();
+    }
 }

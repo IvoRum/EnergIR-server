@@ -12,6 +12,8 @@ import java.util.Optional;
 public interface GasReadingRepository extends JpaRepository<GasReading, Long> {
     List<GasReading> findByMeter_IdOrderByRecordedOnDesc(Integer meterId);
 
+    List<GasReading> findByMeter_IdOrderByRecordedOnAsc(Integer meterId);
+
     List<GasReading> findByMeter_IdAndRecordedOnGreaterThanEqualOrderByRecordedOnAsc(Integer meterId, Instant from);
 
     Optional<GasReading> findByIdAndMeter_Id(Long id, Integer meterId);

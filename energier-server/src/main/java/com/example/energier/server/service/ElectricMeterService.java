@@ -4,6 +4,7 @@ import com.example.energier.server.model.request.CreateElectricMeterRequest;
 import com.example.energier.server.model.request.UpdateElectricMeterRequest;
 import com.example.energier.server.model.responce.ElectricMeterEnergyReadingResponse;
 import com.example.energier.server.model.responce.ElectricMeterResponse;
+import com.example.energier.server.model.responce.WeeklyConsumptionResponse;
 import com.example.energier.server.persistence.Company;
 import com.example.energier.server.persistence.ElectricMeter;
 import com.example.energier.server.persistence.ElectricMeterEnergyReading;
@@ -17,7 +18,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.TextStyle;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @Transactional
@@ -103,10 +110,17 @@ public class ElectricMeterService {
                         HttpStatus.NOT_FOUND, "Meter with id " + id + " not found"));
     }
 
+    public void delete(Integer companyId, Integer id) {
+        ElectricMeter meter = findOrThrow(companyId, id);
+        readingRepository.deleteAllByMeter_Id(meter.getId());
+        electricMeterRepository.delete(meter);
+    }
+
     private ElectricMeterResponse toResponse(ElectricMeter meter) {
-        ElectricMeterEnergyReading latest = readingRepository
-                .findFirstByMeter_IdOrderByCreatedOnDesc(meter.getId())
-                .orElse(null);
+        List<ElectricMeterEnergyReading> readings =
+                readingRepository.findByMeter_IdOrderByCreatedOnAsc(meter.getId());
+        ElectricMeterEnergyReading latest = readings.isEmpty() ? null : readings.get(readings.size() - 1);
+        Trend trend = calculateTrend(readings);
 
         return ElectricMeterResponse.builder()
                 .id(meter.getId())
@@ -119,7 +133,53 @@ public class ElectricMeterService {
                 .active(meter.isActive())
                 .createdOn(meter.getCreatedOn())
                 .latestReading(latest != null ? toReadingResponse(latest) : null)
+                .dailyAverage(trend.dailyAverage())
+                .weeklyConsumption(trend.weekly())
                 .build();
+    }
+
+    private Trend calculateTrend(List<ElectricMeterEnergyReading> readings) {
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDate today = LocalDate.now(zone);
+        double[] weekly = new double[7];
+        double last30Days = 0.0;
+
+        for (int i = 1; i < readings.size(); i++) {
+            ElectricMeterEnergyReading previous = readings.get(i - 1);
+            ElectricMeterEnergyReading current = readings.get(i);
+
+            double previousTotal = previous.getTotalActiveEnergyImportTariff1()
+                    + previous.getTotalActiveEnergyImportTariff2();
+            double currentTotal = current.getTotalActiveEnergyImportTariff1()
+                    + current.getTotalActiveEnergyImportTariff2();
+            double delta = currentTotal - previousTotal;
+            // A lower reading is a meter reset or a manual correction; do not chart a negative bar.
+            if (delta < 0) delta = 0;
+
+            LocalDate date = current.getCreatedOn().atZone(zone).toLocalDate();
+            long daysAgo = ChronoUnit.DAYS.between(date, today);
+            if (daysAgo >= 0 && daysAgo < 7) {
+                weekly[6 - (int) daysAgo] += delta;
+            }
+            if (daysAgo >= 0 && daysAgo < 30) {
+                last30Days += delta;
+            }
+        }
+
+        List<WeeklyConsumptionResponse> weeklyResponse = new ArrayList<>(7);
+        for (int i = 0; i < 7; i++) {
+            LocalDate date = today.minusDays(6 - i);
+            weeklyResponse.add(WeeklyConsumptionResponse.builder()
+                    .day(date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
+                    .date(date.toString())
+                    .consumption(weekly[i])
+                    .build());
+        }
+
+        return new Trend(last30Days / 30.0, weeklyResponse);
+    }
+
+    private record Trend(double dailyAverage, List<WeeklyConsumptionResponse> weekly) {
     }
 
     private ElectricMeterEnergyReadingResponse toReadingResponse(ElectricMeterEnergyReading reading) {
