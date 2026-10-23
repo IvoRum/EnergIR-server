@@ -43,7 +43,7 @@ public class SecurityConfig {
                 .and()
                 .authorizeHttpRequests()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/vi/auth/**","api/v1/draft/**","/health/**","/error")
+                .requestMatchers("/api/vi/auth/**","api/v1/draft/**","/health","/health/**","/api/v1/health","/api/v1/health/**","/error")
                 .permitAll().anyRequest().authenticated();
         http
                 .authenticationProvider(authenticationProvider());
