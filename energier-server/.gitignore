@@ -5,6 +5,10 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+# Local copy of the deployment env file (the real one is /etc/volts/energir.env)
+deploy/energir.env
+.env
+
 ### STS ###
 .apt_generated
 .classpath

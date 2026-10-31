@@ -3,12 +3,13 @@
 //
 //  Jenkins declarative pipeline. It:
 //    1. checks out the repo
-//    2. rsyncs the sources to /opt/energir
+//    2. rsyncs energier-server/ to /opt/energir
 //    3. builds the executable jar
 //    4. restarts the systemd service
 //    5. smoke-tests the API port
 //
-//  One-time server setup is described in the frontend repo's JENKINS.md.
+//  One-time server setup: deploy/setup-server.sh
+//  Full walkthrough:      doc/JENKINS.md
 // ============================================================================
 
 pipeline {
@@ -23,6 +24,8 @@ pipeline {
 
   environment {
     APP_DIR = '/opt/energir'
+    // The Gradle project lives in a subfolder of the repo.
+    PROJECT_DIR = 'energier-server'
   }
 
   stages {
@@ -34,11 +37,14 @@ pipeline {
 
     stage('Tool check') {
       steps {
-        sh '''
-          set -eu
-          java -version
-          ./gradlew --version | sed -n '1,6p'
-        '''
+        dir("$PROJECT_DIR") {
+          sh '''
+            set -eu
+            chmod +x gradlew
+            java -version
+            ./gradlew --version | sed -n '1,6p'
+          '''
+        }
       }
     }
 
@@ -52,7 +58,7 @@ pipeline {
             --exclude 'build' \
             --exclude '.gradle' \
             --exclude '.idea' \
-            ./ "$APP_DIR/"
+            "$PROJECT_DIR/" "$APP_DIR/"
         '''
       }
     }
@@ -68,7 +74,8 @@ pipeline {
     stage('Restart API') {
       steps {
         sh 'sudo systemctl restart energir-server'
-        sh 'sudo systemctl --no-pager --lines=30 status energir-server || true'
+        # Keep this command exactly as allowed in /etc/sudoers.d/jenkins-deploy.
+        sh 'sudo systemctl status energir-server || true'
       }
     }
 
@@ -76,8 +83,14 @@ pipeline {
       steps {
         sh '''
           set -eu
+          # The port lives in /etc/volts/energir.env; read it back from systemd
+          # so changing SERVER_PORT there is enough.
+          port=$(systemctl show energir-server -p Environment --value \
+            | tr ' ' '\\n' | sed -n 's/^SERVER_PORT=//p' | tail -n 1)
+          port=${port:-8080}
+          echo "Smoke-testing http://127.0.0.1:${port}/api/v1/devices"
           for i in $(seq 1 20); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/v1/devices || true)
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/api/v1/devices" || true)
             if [ "$code" = "200" ] || [ "$code" = "401" ] || [ "$code" = "403" ]; then
               echo "API is up (HTTP $code)"
               exit 0
