@@ -19,12 +19,6 @@ body:json {
   }
 }
 
-vars:pre-request {
-  baseUrl: localhost:8080
-  email: ivailo.pl.r@gmail.com
-  password: !Ar4ebar4e
-}
-
 script:post-response {
   const body = res.getBody()
   if (body && body.access_token) {

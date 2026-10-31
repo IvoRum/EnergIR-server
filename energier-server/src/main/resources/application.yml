@@ -19,7 +19,7 @@ spring:
     jwtSecret: ${JWT_SECRET:s3cr37}
     jwtExpirationMs: ${JWT_EXPIRATION_MS:36000000}
 
-  # Mongo is currently unused: TerraLogger builds its own client (hardcoded Atlas URI).
+  # Mongo is currently unused: TerraLogger builds its own client from MONGODB_URI.
   # Without this, Spring autoconfigures a client pointed at localhost:27017 and a monitor
   # thread spams connection-refused warnings on every startup.
   autoconfigure:
@@ -29,9 +29,11 @@ spring:
       - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
 
   datasource:
-    # Default = the shared development database. Override with
-    # SPRING_DATASOURCE_URL in /etc/volts/energir.env on the server.
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-lively-queen-99751851.eu-central-1.aws.neon.tech/energyx?user=IvoRum&password=RXvnYfB9m1Uz&sslmode=require}
+    # No credentials are committed. Provide the full JDBC URL in the environment:
+    #   SPRING_DATASOURCE_URL=jdbc:postgresql://HOST:5432/DB?user=USER&password=PASS&sslmode=require
+    # Local development: put it in the gitignored application-local.yml (see README).
+    # On the server it comes from /etc/volts/energir.env.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/energir}
     driver-class-name: org.postgresql.Driver
 
   jpa:

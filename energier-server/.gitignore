@@ -9,6 +9,9 @@ build/
 deploy/energir.env
 .env
 
+# Local-only Spring config (real DB credentials, never commit)
+application-local.yml
+
 ### STS ###
 .apt_generated
 .classpath
