@@ -1,6 +1,7 @@
 package com.example.energier.server.jwt;
 
 import io.jsonwebtoken.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -11,10 +12,11 @@ import java.util.function.Function;
 
 @Component
 public class JwtUtil {
-    //@Value("${spring.app.jwtSecret}")
-    private static String secretKey="s3cr37";
-    //@Value("${spring.app.jwtExpirationMs}")
-    private static int jwtExpirationMs=36000000;
+    @Value("${spring.app.jwtSecret}")
+    private String secretKey;
+
+    @Value("${spring.app.jwtExpirationMs}")
+    private int jwtExpirationMs;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);

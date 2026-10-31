@@ -13,12 +13,13 @@ cd EnergIR-server/energier-server
 
 ```bash
 cd energier-server
-./gradlew bootRun     # http://localhost:8080
+SPRING_PROFILES_ACTIVE=local ./gradlew bootRun     # http://localhost:8080
 ./gradlew test
 ```
 
-Defaults (port, database) live in `src/main/resources/application.yml`. Override
-without editing it:
+Credentials are not committed. Put the JDBC URL in a gitignored
+`application-local.yml` (see [`deploy/README.md`](energier-server/deploy/README.md#local-development)),
+or pass it as an env var:
 
 ```bash
 SERVER_PORT=8081 ./gradlew bootRun

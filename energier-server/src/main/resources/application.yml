@@ -1,12 +1,14 @@
 # ============================================================================
 #  EnergIR API configuration
 #
-#  Local development:  ./gradlew bootRun   (no env file needed — defaults below)
+#  Local development:  SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+#                      (DB credentials + dev JWT key live in the gitignored
+#                       application-local.yml — nothing secret is in the repo)
 #  Tests:              ./gradlew test
 #
 #  Deployment: every value can be overridden by the environment. On the server
 #  the file /etc/volts/energir.env is loaded by the systemd unit; see deploy/.
-#  Do not put real per-environment credentials here — use that file.
+#  Do not put real per-environment credentials here.
 # ============================================================================
 
 server:
@@ -15,8 +17,8 @@ server:
 
 spring:
   app:
-    # Override with JWT_SECRET in production.
-    jwtSecret: ${JWT_SECRET:s3cr37}
+    # Required. No default in the repo — see deploy/energir.env.example.
+    jwtSecret: ${JWT_SECRET}
     jwtExpirationMs: ${JWT_EXPIRATION_MS:36000000}
 
   # Mongo is currently unused: TerraLogger builds its own client from MONGODB_URI.
