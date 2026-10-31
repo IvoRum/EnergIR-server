@@ -1,0 +1,46 @@
+meta {
+  name: Create Meter
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/meters
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "edgeId": "{{edgeId}}",
+    "edgeMeterId": {{edgeMeterId}},
+    "address": 7,
+    "name": "Test Meter Alpha",
+    "manufacturer": "Siemens",
+    "model": "Sentron PAC3120"
+  }
+}
+
+script:post-response {
+  const body = res.getBody()
+  if (body && body.id !== undefined) {
+    bru.setEnvVar("meterId", String(body.id))
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201)
+  })
+
+  test("returns the meter for edgeId/edgeMeterId", function() {
+    const body = res.getBody()
+    expect(body.id).to.be.a("number")
+    expect(body.edgeId).to.equal(bru.getEnvVar("edgeId"))
+    expect(Number(body.edgeMeterId)).to.equal(Number(bru.getEnvVar("edgeMeterId")))
+  })
+}

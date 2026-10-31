@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
@@ -21,4 +22,13 @@ public class ElectricMeterResponse {
     private String model;
     private boolean active;
     private Instant createdOn;
+
+    /** Latest reading for this meter, or null when it has never reported. */
+    private ElectricMeterEnergyReadingResponse latestReading;
+
+    /** Average daily consumption from reading deltas over the last 30 days. */
+    private double dailyAverage;
+
+    /** Consumption per day for the last 7 days, derived from reading deltas. */
+    private List<WeeklyConsumptionResponse> weeklyConsumption;
 }

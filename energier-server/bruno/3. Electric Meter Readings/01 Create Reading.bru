@@ -1,0 +1,52 @@
+meta {
+  name: Create Reading
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/readings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "edgeId": "{{edgeId}}",
+    "edgeMeterId": {{edgeMeterId}},
+    "totalActiveEnergyImportTariff1": 1234.5,
+    "totalActiveEnergyImportTariff2": 678.9,
+    "totalActiveEnergyExportTariff1": 1.0,
+    "totalActiveEnergyExportTariff2": 2.0,
+    "totalReactiveEnergyImportTariff1": 10.0,
+    "totalReactiveEnergyImportTariff2": 20.0,
+    "totalReactiveEnergyExportTariff1": 0.0,
+    "totalReactiveEnergyExportTariff2": 0.0,
+    "totalApparentEnergyTariff1": 100.0,
+    "totalApparentEnergyTariff2": 200.0
+  }
+}
+
+docs {
+  `createdOn` is optional — omit it and the server uses `Instant.now()`.
+  The server is idempotent on `(meter, createdOn)`, so re-posting the same
+  `createdOn` returns the existing row. The meter must already exist for
+  `(edgeId, edgeMeterId)` or this returns **404**.
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.getStatus()).to.equal(201)
+  })
+
+  test("returns the stored reading", function() {
+    const body = res.getBody()
+    expect(body.id).to.be.a("number")
+    expect(body.meterId).to.be.a("number")
+    expect(body.totalActiveEnergyImportTariff1).to.equal(1234.5)
+  })
+}

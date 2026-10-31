@@ -1,8 +1,27 @@
+# ============================================================================
+#  EnergIR API configuration
+#
+#  Local development:  SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+#                      (DB credentials + dev JWT key live in the gitignored
+#                       application-local.yml — nothing secret is in the repo)
+#  Tests:              ./gradlew test
+#
+#  Deployment: every value can be overridden by the environment. On the server
+#  the file /etc/volts/energir.env is loaded by the systemd unit; see deploy/.
+#  Do not put real per-environment credentials here.
+# ============================================================================
+
+server:
+  # Same default port the Jenkins smoke test falls back to.
+  port: ${SERVER_PORT:8080}
+
 spring:
   app:
-    jwtSecret: s3cr37
-    jwtExpirationMs: 36000000
-  # Mongo is currently unused: TerraLogger builds its own client (hardcoded Atlas URI).
+    # Required. No default in the repo — see deploy/energir.env.example.
+    jwtSecret: ${JWT_SECRET}
+    jwtExpirationMs: ${JWT_EXPIRATION_MS:36000000}
+
+  # Mongo is currently unused: TerraLogger builds its own client from MONGODB_URI.
   # Without this, Spring autoconfigures a client pointed at localhost:27017 and a monitor
   # thread spams connection-refused warnings on every startup.
   autoconfigure:
@@ -10,9 +29,15 @@ spring:
       - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
       - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
       - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
+
   datasource:
-    url: jdbc:postgresql://ep-lively-queen-99751851.eu-central-1.aws.neon.tech/energyx?user=IvoRum&password=RXvnYfB9m1Uz&sslmode=require
+    # No credentials are committed. Provide the full JDBC URL in the environment:
+    #   SPRING_DATASOURCE_URL=jdbc:postgresql://HOST:5432/DB?user=USER&password=PASS&sslmode=require
+    # Local development: put it in the gitignored application-local.yml (see README).
+    # On the server it comes from /etc/volts/energir.env.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/energir}
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
      # Sync the remote schema to the entities (adds missing columns/tables).
@@ -31,6 +56,7 @@ spring:
         format_sql: true
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+# Local-only alternative: bind to a specific interface (uncomment if needed).
 # server:
- # address: 172.20.10.2
- # port: 8081
+#   address: 172.20.10.2

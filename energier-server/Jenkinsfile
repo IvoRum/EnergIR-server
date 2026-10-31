@@ -1,0 +1,111 @@
+// ============================================================================
+//  EnergIR API — Spring Boot
+//
+//  Jenkins declarative pipeline. It:
+//    1. checks out the repo
+//    2. rsyncs energier-server/ to /opt/energir
+//    3. builds the executable jar
+//    4. restarts the systemd service
+//    5. smoke-tests the API port
+//
+//  One-time server setup: deploy/setup-server.sh
+//  Full walkthrough:      doc/JENKINS.md
+// ============================================================================
+
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+    timeout(time: 30, unit: 'MINUTES')
+    disableConcurrentBuilds()
+  }
+
+  environment {
+    APP_DIR = '/opt/energir'
+    // The Gradle project lives in a subfolder of the repo.
+    PROJECT_DIR = 'energier-server'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Tool check') {
+      steps {
+        dir("$PROJECT_DIR") {
+          sh '''
+            set -eu
+            chmod +x gradlew
+            java -version
+            ./gradlew --version | sed -n '1,6p'
+          '''
+        }
+      }
+    }
+
+    stage('Sync sources') {
+      steps {
+        sh '''
+          set -eu
+          mkdir -p "$APP_DIR"
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude 'build' \
+            --exclude '.gradle' \
+            --exclude '.idea' \
+            "$PROJECT_DIR/" "$APP_DIR/"
+        '''
+      }
+    }
+
+    stage('Build jar') {
+      steps {
+        dir("$APP_DIR") {
+          sh 'chmod +x gradlew && ./gradlew clean bootJar -x test --console=plain'
+        }
+      }
+    }
+
+    stage('Restart API') {
+      steps {
+        sh 'sudo systemctl restart energir-server'
+        # Keep this command exactly as allowed in /etc/sudoers.d/jenkins-deploy.
+        sh 'sudo systemctl status energir-server || true'
+      }
+    }
+
+    stage('Smoke test') {
+      steps {
+        sh '''
+          set -eu
+          # The port lives in /etc/volts/energir.env; read it back from systemd
+          # so changing SERVER_PORT there is enough.
+          port=$(systemctl show energir-server -p Environment --value \
+            | tr ' ' '\\n' | sed -n 's/^SERVER_PORT=//p' | tail -n 1)
+          port=${port:-8080}
+          echo "Smoke-testing http://127.0.0.1:${port}/api/v1/devices"
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/api/v1/devices" || true)
+            if [ "$code" = "200" ] || [ "$code" = "401" ] || [ "$code" = "403" ]; then
+              echo "API is up (HTTP $code)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy in time" >&2
+          exit 1
+        '''
+      }
+    }
+  }
+
+  post {
+    success { echo "Deployed ${env.BUILD_TAG} to ${APP_DIR}" }
+    failure { echo "Deployment failed — check the logs above." }
+  }
+}

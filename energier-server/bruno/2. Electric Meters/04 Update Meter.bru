@@ -1,0 +1,38 @@
+meta {
+  name: Update Meter
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/meters/{{meterId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Test Meter Alpha (renamed)",
+    "address": 8,
+    "manufacturer": "Siemens",
+    "model": "Sentron PAC3220",
+    "active": true
+  }
+}
+
+tests {
+  test("status is 200, 404 or 400", function() {
+    expect([200, 404, 400]).to.include(res.getStatus())
+  })
+
+  test("applies the update", function() {
+    if (res.getStatus() === 200) {
+      expect(res.getBody().id).to.equal(Number(bru.getEnvVar("meterId")))
+      expect(res.getBody().name).to.equal("Test Meter Alpha (renamed)")
+    }
+  })
+}

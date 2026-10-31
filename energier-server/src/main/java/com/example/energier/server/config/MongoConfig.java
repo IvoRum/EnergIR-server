@@ -9,7 +9,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 //@Configuration
 public class MongoConfig {
     public @Bean MongoClient mongoClient() {
-        return MongoClients.create("mongodb+srv://ivo:ar4ebar4e@terra-log.rumnftg.mongodb.net/?retryWrites=true&w=majority&appName=terra-log");
+        return MongoClients.create(
+                System.getenv().getOrDefault("MONGODB_URI", "mongodb://localhost:27017"));
     }
 
     @Bean

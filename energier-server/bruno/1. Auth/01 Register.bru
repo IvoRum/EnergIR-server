@@ -1,0 +1,40 @@
+meta {
+  name: Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/vi/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{email}}",
+    "password": "{{password}}",
+    "firstName": "Demo",
+    "lastName": "User"
+  }
+}
+
+script:post-response {
+  const body = res.getBody()
+  if (body && body.access_token) {
+    bru.setEnvVar("token", body.access_token)
+  }
+}
+
+tests {
+  test("registered (200) or email already taken (303)", function() {
+    expect([200, 303]).to.include(res.getStatus())
+  })
+  
+  test("returns an access token on success", function() {
+    if (res.getStatus() === 200) {
+      expect(res.getBody().access_token).to.be.a("string")
+      expect(res.getBody().role).to.be.a("string")
+    }
+  })
+}

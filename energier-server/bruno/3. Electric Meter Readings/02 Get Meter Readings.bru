@@ -1,0 +1,35 @@
+meta {
+  name: Get Meter Readings
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/meters/{{meterId}}/readings
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+params:query {
+  limit: 100
+  ~since: 2026-01-01T00:00:00Z
+}
+
+docs {
+  Returns **oldest first** — there is no "latest" flag. `limit` defaults to
+  100 (max 1000). Un-disable `since` to filter by an ISO-8601 instant.
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.getStatus()).to.equal(200)
+  })
+
+  test("returns an array of readings", function() {
+    expect(res.getBody()).to.be.an("array")
+  })
+}
