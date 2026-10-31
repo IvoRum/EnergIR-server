@@ -37,7 +37,7 @@ pipeline {
 
     stage('Tool check') {
       steps {
-        dir("$PROJECT_DIR") {
+        dir(env.PROJECT_DIR) {
           sh '''
             set -eu
             chmod +x gradlew
@@ -65,7 +65,7 @@ pipeline {
 
     stage('Build jar') {
       steps {
-        dir("$APP_DIR") {
+        dir(env.APP_DIR) {
           sh 'chmod +x gradlew && ./gradlew clean bootJar -x test --console=plain'
         }
       }
@@ -74,7 +74,7 @@ pipeline {
     stage('Restart API') {
       steps {
         sh 'sudo systemctl restart energir-server'
-        # Keep this command exactly as allowed in /etc/sudoers.d/jenkins-deploy.
+        // Keep this command exactly as allowed in /etc/sudoers.d/jenkins-deploy.
         sh 'sudo systemctl status energir-server || true'
       }
     }
@@ -105,7 +105,7 @@ pipeline {
   }
 
   post {
-    success { echo "Deployed ${env.BUILD_TAG} to ${APP_DIR}" }
+    success { echo "Deployed ${env.BUILD_TAG} to ${env.APP_DIR}" }
     failure { echo "Deployment failed — check the logs above." }
   }
 }
