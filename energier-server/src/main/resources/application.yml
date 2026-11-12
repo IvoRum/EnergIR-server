@@ -16,6 +16,13 @@ server:
   port: ${SERVER_PORT:8080}
 
 spring:
+  config:
+    # Load the gitignored local credentials file whenever it is present, so a plain
+    # run (IntelliJ, ./gradlew bootRun) uses the dev database without needing an
+    # active profile. Absent on the server/CI, where it is a no-op and the env
+    # vars below take over. Still overridable by SPRING_DATASOURCE_URL etc.
+    import: optional:file:./application-local.yml
+
   app:
     # Required. No default in the repo — see deploy/energir.env.example.
     jwtSecret: ${JWT_SECRET}
