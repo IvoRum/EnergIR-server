@@ -13,7 +13,10 @@
 // ============================================================================
 
 pipeline {
-  agent any
+  // The deploy target is the host itself (/opt/energir + systemd), so the build
+  // must run on a host agent — not on the built-in node, which is a container
+  // where /opt is read-only and systemctl does not exist.
+  agent { label 'host-deploy' }
 
   options {
     timestamps()
