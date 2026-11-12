@@ -74,9 +74,11 @@ pipeline {
 
     stage('Build jar') {
       steps {
-        dir(env.APP_DIR) {
-          sh 'chmod +x gradlew && ./gradlew clean bootJar -x test --console=plain'
-        }
+        // `cd` instead of dir(APP_DIR): dir() makes /opt/energir the workspace,
+        // and the sh step then needs a sibling control dir /opt/energir@tmp in
+        // root-owned /opt (AccessDeniedException). The workspace stays under
+        // /home/jenkins; only the build's working directory moves.
+        sh 'cd "$APP_DIR" && ./gradlew clean bootJar -x test --console=plain'
       }
     }
 
