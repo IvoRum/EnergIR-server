@@ -23,6 +23,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ElectricMeterEnergyReadingService {
 
+    /** Every energy counter column is stored in watts; the UI shows kWh. */
+    private static final double STORED_UNITS_PER_KWH = 1000.0;
+
     private final ElectricMeterEnergyReadingRepository readingRepository;
     private final ElectricMeterRepository meterRepository;
     private final DeviceRepository deviceRepository;
@@ -75,6 +78,10 @@ public class ElectricMeterEnergyReadingService {
         }
 
         double kwh = toKwh(request.getValue(), request.getUnit());
+        // Counters are stored in watts, the same unit the edge devices push, so
+        // scale the manual kWh entry to match. (The dashboard divides by 1000
+        // again for display, so a manual "100 kWh" reads back as 100 kWh.)
+        double stored = kwh * STORED_UNITS_PER_KWH;
         Instant createdOn = request.getCreatedOn() != null ? request.getCreatedOn() : Instant.now();
 
         touchDevice(meter);
@@ -112,7 +119,7 @@ public class ElectricMeterEnergyReadingService {
         double base = latest != null
                 ? latest.getTotalActiveEnergyImportTariff1() + latest.getTotalActiveEnergyImportTariff2()
                 : 0.0;
-        double newTotal = base + kwh;
+        double newTotal = base + stored;
 
         ElectricMeterEnergyReading reading = ElectricMeterEnergyReading.builder()
                 .meter(meter)
