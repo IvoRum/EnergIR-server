@@ -45,9 +45,22 @@ public class WaterService {
     private final CompanyRepository companyRepository;
 
     public List<WaterMeterResponse> getAll(Integer companyId) {
+        return getAll(companyId, false);
+    }
+
+    /** archived=true lists the archived meters instead of the active ones. */
+    public List<WaterMeterResponse> getAll(Integer companyId, boolean archived) {
         return meterRepository.findAllByCompany_IdOrderByIdAsc(companyId).stream()
+                .filter(meter -> Boolean.TRUE.equals(meter.getArchived()) == archived)
                 .map(this::toResponse)
                 .toList();
+    }
+
+    /** Soft delete / restore. Archiving keeps the readings intact. */
+    public WaterMeterResponse setArchived(Integer companyId, Integer id, boolean archived) {
+        WaterMeter meter = findMeter(companyId, id);
+        meter.setArchived(archived);
+        return toResponse(meterRepository.save(meter));
     }
 
     public WaterMeterResponse getById(Integer companyId, Integer id) {
@@ -345,6 +358,7 @@ public class WaterService {
 
         return WaterMeterResponse.builder()
                 .id(meter.getId())
+                .archived(Boolean.TRUE.equals(meter.getArchived()))
                 .name(meter.getName())
                 .description(meter.getDescription())
                 .location(meter.getLocation())

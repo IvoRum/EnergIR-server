@@ -28,9 +28,12 @@ public class WaterController {
     private final CompanyService companyService;
 
     @GetMapping
-    public ResponseEntity<List<WaterMeterResponse>> getAll(Authentication authentication) {
+    public ResponseEntity<List<WaterMeterResponse>> getAll(
+            Authentication authentication,
+            @RequestParam(name = "archived", defaultValue = "false") boolean archived
+    ) {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
-        return ResponseEntity.ok(waterService.getAll(companyId));
+        return ResponseEntity.ok(waterService.getAll(companyId, archived));
     }
 
     @GetMapping("/groups")
@@ -96,6 +99,25 @@ public class WaterController {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
         waterService.delete(companyId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Soft delete: keeps the meter and its readings, hides it from the active list. */
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<WaterMeterResponse> archive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(waterService.setArchived(companyId, id, true));
+    }
+
+    @PutMapping("/{id}/unarchive")
+    public ResponseEntity<WaterMeterResponse> unarchive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(waterService.setArchived(companyId, id, false));
     }
 
     @PostMapping("/{id}/data")

@@ -57,6 +57,10 @@ public class WaterMeter {
     @Column(name = "last_updated")
     private Instant lastUpdated;
 
+    /** Soft delete: archived meters keep their readings but leave the active list. */
+    @Column(name = "archived")
+    private Boolean archived;
+
     @Column(name = "created_on", nullable = false)
     private Instant createdOn;
 }

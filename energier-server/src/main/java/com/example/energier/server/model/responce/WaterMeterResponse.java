@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 public class WaterMeterResponse {
     private Integer id;
+    private boolean archived;
     private String name;
     private String description;
     private String location;
