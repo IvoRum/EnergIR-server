@@ -28,9 +28,12 @@ public class GasController {
     private final CompanyService companyService;
 
     @GetMapping
-    public ResponseEntity<List<GasMeterResponse>> getAll(Authentication authentication) {
+    public ResponseEntity<List<GasMeterResponse>> getAll(
+            Authentication authentication,
+            @RequestParam(name = "archived", defaultValue = "false") boolean archived
+    ) {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
-        return ResponseEntity.ok(gasService.getAll(companyId));
+        return ResponseEntity.ok(gasService.getAll(companyId, archived));
     }
 
     @GetMapping("/groups")
@@ -96,6 +99,25 @@ public class GasController {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
         gasService.delete(companyId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Soft delete: keeps the meter and its readings, hides it from the active list. */
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<GasMeterResponse> archive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(gasService.setArchived(companyId, id, true));
+    }
+
+    @PutMapping("/{id}/unarchive")
+    public ResponseEntity<GasMeterResponse> unarchive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(gasService.setArchived(companyId, id, false));
     }
 
     @PostMapping("/{id}/data")
