@@ -26,9 +26,12 @@ public class ElectricMeterController {
     private final CompanyService companyService;
 
     @GetMapping
-    public ResponseEntity<List<ElectricMeterResponse>> getAll(Authentication authentication) {
+    public ResponseEntity<List<ElectricMeterResponse>> getAll(
+            Authentication authentication,
+            @RequestParam(name = "archived", defaultValue = "false") boolean archived
+    ) {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
-        return ResponseEntity.ok(electricMeterService.getAll(companyId));
+        return ResponseEntity.ok(electricMeterService.getAll(companyId, archived));
     }
 
     @GetMapping("/{id}")
@@ -68,5 +71,24 @@ public class ElectricMeterController {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
         electricMeterService.delete(companyId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Soft delete: keeps the meter and its readings, hides it from the active list. */
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<ElectricMeterResponse> archive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(electricMeterService.setArchived(companyId, id, true));
+    }
+
+    @PutMapping("/{id}/unarchive")
+    public ResponseEntity<ElectricMeterResponse> unarchive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(electricMeterService.setArchived(companyId, id, false));
     }
 }

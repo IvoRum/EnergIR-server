@@ -37,9 +37,25 @@ public class ElectricMeterService {
 
     /** All meters belonging to a company. */
     public List<ElectricMeterResponse> getAll(Integer companyId) {
+        return getAll(companyId, false);
+    }
+
+    /** archived=true lists the archived meters instead of the active ones. */
+    public List<ElectricMeterResponse> getAll(Integer companyId, boolean archived) {
         return electricMeterRepository.findAllByCompany_IdOrderByIdAsc(companyId).stream()
+                .filter(meter -> Boolean.TRUE.equals(meter.getArchived()) == archived)
                 .map(this::toResponse)
                 .toList();
+    }
+
+    /**
+     * Soft delete / restore. Independent of `active`: a meter can be archived
+     * (hidden) while still recording, and restored later with its history.
+     */
+    public ElectricMeterResponse setArchived(Integer companyId, Integer id, boolean archived) {
+        ElectricMeter meter = findOrThrow(companyId, id);
+        meter.setArchived(archived);
+        return toResponse(electricMeterRepository.save(meter));
     }
 
     public ElectricMeterResponse getById(Integer companyId, Integer id) {
@@ -124,6 +140,7 @@ public class ElectricMeterService {
 
         return ElectricMeterResponse.builder()
                 .id(meter.getId())
+                .archived(Boolean.TRUE.equals(meter.getArchived()))
                 .edgeId(meter.getEdgeId())
                 .edgeMeterId(meter.getEdgeMeterId())
                 .address(meter.getAddress())
