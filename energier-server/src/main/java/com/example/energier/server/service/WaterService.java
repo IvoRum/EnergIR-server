@@ -3,7 +3,9 @@ package com.example.energier.server.service;
 import com.example.energier.server.model.request.CreateWaterGroupRequest;
 import com.example.energier.server.model.request.CreateWaterMeterRequest;
 import com.example.energier.server.model.request.CreateWaterReadingRequest;
+import com.example.energier.server.model.request.UpdateWaterGroupRequest;
 import com.example.energier.server.model.request.UpdateWaterMeterRequest;
+import com.example.energier.server.model.request.UpdateWaterReadingRequest;
 import com.example.energier.server.model.responce.WaterGroupResponse;
 import com.example.energier.server.model.responce.WaterMeterResponse;
 import com.example.energier.server.model.responce.WaterReadingResponse;
@@ -194,6 +196,51 @@ public class WaterService {
         readingRepository.delete(reading);
         meter.setCurrentValue(Math.max(0, meter.getCurrentValue() - reading.getValue()));
         meterRepository.save(meter);
+    }
+
+    /** Edits a stored reading and keeps the meter's running total in step. */
+    public WaterMeterResponse updateReading(
+            Integer companyId,
+            Integer meterId,
+            Long readingId,
+            UpdateWaterReadingRequest request
+    ) {
+        WaterMeter meter = findMeter(companyId, meterId);
+        WaterReading reading = readingRepository.findByIdAndMeter_Id(readingId, meter.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Water reading not found"));
+
+        double previous = reading.getValue();
+        double updated = request.getValue() != null ? request.getValue() : previous;
+        if (updated <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reading value must be greater than zero");
+        }
+
+        if (request.getDate() != null || request.getTime() != null) {
+            String date = (request.getDate() == null || request.getDate().isBlank())
+                    ? reading.getRecordedOn().atZone(ZoneId.systemDefault()).toLocalDate().toString()
+                    : request.getDate();
+            reading.setRecordedOn(parseInstant(date, request.getTime()));
+        }
+        reading.setValue(updated);
+        readingRepository.save(reading);
+
+        meter.setCurrentValue(Math.max(0, meter.getCurrentValue() + (updated - previous)));
+        readingRepository.findByMeter_IdOrderByRecordedOnDesc(meter.getId()).stream().findFirst()
+                .ifPresent(latest -> meter.setLastUpdated(latest.getRecordedOn()));
+        meterRepository.save(meter);
+
+        return toResponse(meter);
+    }
+
+    public WaterGroupResponse updateGroup(Integer companyId, Integer id, UpdateWaterGroupRequest request) {
+        WaterGroup group = groupRepository.findByIdAndCompany_Id(id, companyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Water group not found"));
+
+        if (request.getName() != null) group.setName(requireText(request.getName(), "Group name"));
+        if (request.getDescription() != null) group.setDescription(trimToNull(request.getDescription()));
+        if (request.getColor() != null) group.setColor(defaultIfBlank(request.getColor(), group.getColor()));
+
+        return toGroupResponse(groupRepository.save(group));
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

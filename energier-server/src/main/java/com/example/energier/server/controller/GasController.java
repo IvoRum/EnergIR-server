@@ -3,7 +3,9 @@ package com.example.energier.server.controller;
 import com.example.energier.server.model.request.CreateGasGroupRequest;
 import com.example.energier.server.model.request.CreateGasMeterRequest;
 import com.example.energier.server.model.request.CreateGasReadingRequest;
+import com.example.energier.server.model.request.UpdateGasGroupRequest;
 import com.example.energier.server.model.request.UpdateGasMeterRequest;
+import com.example.energier.server.model.request.UpdateGasReadingRequest;
 import com.example.energier.server.model.responce.GasGroupResponse;
 import com.example.energier.server.model.responce.GasMeterResponse;
 import com.example.energier.server.service.CompanyService;
@@ -115,5 +117,26 @@ public class GasController {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
         gasService.deleteReading(companyId, id, readingId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/data/{readingId}")
+    public ResponseEntity<GasMeterResponse> updateReading(
+            Authentication authentication,
+            @PathVariable Integer id,
+            @PathVariable Long readingId,
+            @RequestBody UpdateGasReadingRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(gasService.updateReading(companyId, id, readingId, request));
+    }
+
+    @PutMapping("/groups/{id}")
+    public ResponseEntity<GasGroupResponse> updateGroup(
+            Authentication authentication,
+            @PathVariable Integer id,
+            @RequestBody UpdateGasGroupRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(gasService.updateGroup(companyId, id, request));
     }
 }

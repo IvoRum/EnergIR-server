@@ -3,7 +3,9 @@ package com.example.energier.server.service;
 import com.example.energier.server.model.request.CreateGasGroupRequest;
 import com.example.energier.server.model.request.CreateGasMeterRequest;
 import com.example.energier.server.model.request.CreateGasReadingRequest;
+import com.example.energier.server.model.request.UpdateGasGroupRequest;
 import com.example.energier.server.model.request.UpdateGasMeterRequest;
+import com.example.energier.server.model.request.UpdateGasReadingRequest;
 import com.example.energier.server.model.responce.GasGroupResponse;
 import com.example.energier.server.model.responce.GasMeterResponse;
 import com.example.energier.server.model.responce.GasReadingResponse;
@@ -194,6 +196,51 @@ public class GasService {
         readingRepository.delete(reading);
         meter.setCurrentValue(Math.max(0, meter.getCurrentValue() - reading.getValue()));
         meterRepository.save(meter);
+    }
+
+    /** Edits a stored reading and keeps the meter's running total in step. */
+    public GasMeterResponse updateReading(
+            Integer companyId,
+            Integer meterId,
+            Long readingId,
+            UpdateGasReadingRequest request
+    ) {
+        GasMeter meter = findMeter(companyId, meterId);
+        GasReading reading = readingRepository.findByIdAndMeter_Id(readingId, meter.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Gas reading not found"));
+
+        double previous = reading.getValue();
+        double updated = request.getValue() != null ? request.getValue() : previous;
+        if (updated <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reading value must be greater than zero");
+        }
+
+        if (request.getDate() != null || request.getTime() != null) {
+            String date = (request.getDate() == null || request.getDate().isBlank())
+                    ? reading.getRecordedOn().atZone(ZoneId.systemDefault()).toLocalDate().toString()
+                    : request.getDate();
+            reading.setRecordedOn(parseInstant(date, request.getTime()));
+        }
+        reading.setValue(updated);
+        readingRepository.save(reading);
+
+        meter.setCurrentValue(Math.max(0, meter.getCurrentValue() + (updated - previous)));
+        readingRepository.findByMeter_IdOrderByRecordedOnDesc(meter.getId()).stream().findFirst()
+                .ifPresent(latest -> meter.setLastUpdated(latest.getRecordedOn()));
+        meterRepository.save(meter);
+
+        return toResponse(meter);
+    }
+
+    public GasGroupResponse updateGroup(Integer companyId, Integer id, UpdateGasGroupRequest request) {
+        GasGroup group = groupRepository.findByIdAndCompany_Id(id, companyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Gas group not found"));
+
+        if (request.getName() != null) group.setName(requireText(request.getName(), "Group name"));
+        if (request.getDescription() != null) group.setDescription(trimToNull(request.getDescription()));
+        if (request.getColor() != null) group.setColor(defaultIfBlank(request.getColor(), group.getColor()));
+
+        return toGroupResponse(groupRepository.save(group));
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

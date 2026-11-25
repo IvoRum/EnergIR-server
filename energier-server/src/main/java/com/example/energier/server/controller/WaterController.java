@@ -3,7 +3,9 @@ package com.example.energier.server.controller;
 import com.example.energier.server.model.request.CreateWaterGroupRequest;
 import com.example.energier.server.model.request.CreateWaterMeterRequest;
 import com.example.energier.server.model.request.CreateWaterReadingRequest;
+import com.example.energier.server.model.request.UpdateWaterGroupRequest;
 import com.example.energier.server.model.request.UpdateWaterMeterRequest;
+import com.example.energier.server.model.request.UpdateWaterReadingRequest;
 import com.example.energier.server.model.responce.WaterGroupResponse;
 import com.example.energier.server.model.responce.WaterMeterResponse;
 import com.example.energier.server.service.CompanyService;
@@ -115,5 +117,26 @@ public class WaterController {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
         waterService.deleteReading(companyId, id, readingId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/data/{readingId}")
+    public ResponseEntity<WaterMeterResponse> updateReading(
+            Authentication authentication,
+            @PathVariable Integer id,
+            @PathVariable Long readingId,
+            @RequestBody UpdateWaterReadingRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(waterService.updateReading(companyId, id, readingId, request));
+    }
+
+    @PutMapping("/groups/{id}")
+    public ResponseEntity<WaterGroupResponse> updateGroup(
+            Authentication authentication,
+            @PathVariable Integer id,
+            @RequestBody UpdateWaterGroupRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(waterService.updateGroup(companyId, id, request));
     }
 }

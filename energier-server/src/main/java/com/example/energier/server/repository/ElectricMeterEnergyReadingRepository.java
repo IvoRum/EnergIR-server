@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface ElectricMeterEnergyReadingRepository extends JpaRepository<ElectricMeterEnergyReading, Long> {
     Optional<ElectricMeterEnergyReading> findByMeter_IdAndCreatedOn(Integer meterId, Instant createdOn);
 
+    Optional<ElectricMeterEnergyReading> findByIdAndMeter_Id(Long id, Integer meterId);
+
     Optional<ElectricMeterEnergyReading> findFirstByMeter_IdOrderByCreatedOnDesc(Integer meterId);
 
     List<ElectricMeterEnergyReading> findByMeter_IdAndCreatedOnGreaterThanEqualOrderByIdAsc(
