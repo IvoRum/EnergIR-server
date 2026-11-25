@@ -28,9 +28,31 @@ public class ProductionController {
     private final CompanyService companyService;
 
     @GetMapping
-    public ResponseEntity<List<ProductResponse>> getAll(Authentication authentication) {
+    public ResponseEntity<List<ProductResponse>> getAll(
+            Authentication authentication,
+            @RequestParam(name = "archived", defaultValue = "false") boolean archived
+    ) {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
-        return ResponseEntity.ok(productionService.getAll(companyId));
+        return ResponseEntity.ok(productionService.getAll(companyId, archived));
+    }
+
+    /** Soft delete: keeps the product and its records, hides it from the active list. */
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<ProductResponse> archive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(productionService.setArchived(companyId, id, true));
+    }
+
+    @PutMapping("/{id}/unarchive")
+    public ResponseEntity<ProductResponse> unarchive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(productionService.setArchived(companyId, id, false));
     }
 
     @GetMapping("/groups")

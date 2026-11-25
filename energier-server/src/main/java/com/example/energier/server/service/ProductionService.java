@@ -101,6 +101,21 @@ public class ProductionService {
         productRepository.delete(product);
     }
 
+    /** Archived products keep their records; they are just hidden from the active list. */
+    public List<ProductResponse> getAll(Integer companyId, boolean archived) {
+        return productRepository.findAllByCompany_IdOrderByIdAsc(companyId).stream()
+                .filter(product -> Boolean.TRUE.equals(product.getArchived()) == archived)
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /** Soft delete / restore. Archiving keeps the production records intact. */
+    public ProductResponse setArchived(Integer companyId, Integer id, boolean archived) {
+        Product product = findProduct(companyId, id);
+        product.setArchived(archived);
+        return toResponse(productRepository.save(product));
+    }
+
     public ProductResponse addRecord(Integer companyId, Integer productId, CreateProductionRecordRequest request) {
         Product product = findProduct(companyId, productId);
 
@@ -282,6 +297,7 @@ public class ProductionService {
                 .unit(product.getUnit())
                 .totalProduced(total)
                 .dailyAverage(dailyAverage)
+                .archived(Boolean.TRUE.equals(product.getArchived()))
                 .createdAt(product.getCreatedOn().atZone(ZoneId.systemDefault()).toLocalDate().toString())
                 .lastUpdated(lastUpdated.toString())
                 .productionData(records.stream().map(this::toRecordResponse).toList())

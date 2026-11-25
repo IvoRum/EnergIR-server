@@ -20,6 +20,7 @@ public class ProductResponse {
     private double totalProduced;
     private double dailyAverage;
     /** yyyy-MM-dd */
+    private boolean archived;
     private String createdAt;
     /** ISO-8601 */
     private String lastUpdated;

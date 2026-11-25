@@ -38,6 +38,10 @@ public class Product {
     @Column(nullable = false)
     private String unit;
 
+    /** Soft delete: archived products keep their records but leave the active list. */
+    @Column(name = "archived")
+    private Boolean archived;
+
     @Column(name = "created_on", nullable = false)
     private Instant createdOn;
 }
