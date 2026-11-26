@@ -16,6 +16,9 @@ public class CompressorResponse {
     private boolean archived;
     private String name;
     private String description;
+    /** Null when the compressor has no electric meter attached. */
+    private Integer electricMeterId;
+    private String electricMeterName;
     /** Cubic metres over all readings. */
     private double totalProduced;
     /** Cubic metres per day, averaged over the days with readings. */

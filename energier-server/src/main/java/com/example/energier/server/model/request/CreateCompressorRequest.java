@@ -12,4 +12,6 @@ import lombok.NoArgsConstructor;
 public class CreateCompressorRequest {
     private String name;
     private String description;
+    /** Optional: the electric meter feeding this compressor; null = none. */
+    private Integer electricMeterId;
 }

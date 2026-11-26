@@ -34,6 +34,15 @@ public class Compressor {
     @Column(length = 2000)
     private String description;
 
+    /**
+     * Optional link to the electric meter that powers this compressor, so the
+     * energy behind the compressed air can be costed. Null when the compressor
+     * has no meter of its own.
+     */
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "electric_meter_id")
+    private ElectricMeter electricMeter;
+
     /** Soft delete: archived compressors keep their readings but leave the list. */
     @Column(name = "archived")
     private Boolean archived;

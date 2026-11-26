@@ -8,9 +8,11 @@ import com.example.energier.server.model.responce.CompressorResponse;
 import com.example.energier.server.persistence.Company;
 import com.example.energier.server.persistence.Compressor;
 import com.example.energier.server.persistence.CompressorReading;
+import com.example.energier.server.persistence.ElectricMeter;
 import com.example.energier.server.repository.CompanyRepository;
 import com.example.energier.server.repository.CompressorReadingRepository;
 import com.example.energier.server.repository.CompressorRepository;
+import com.example.energier.server.repository.ElectricMeterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ public class CompressorService {
     private final CompressorRepository compressorRepository;
     private final CompressorReadingRepository readingRepository;
     private final CompanyRepository companyRepository;
+    private final ElectricMeterRepository electricMeterRepository;
 
     public List<CompressorResponse> getAll(Integer companyId) {
         return getAll(companyId, false);
@@ -58,6 +61,7 @@ public class CompressorService {
                 .company(company)
                 .name(requireText(request.getName(), "Compressor name"))
                 .description(trimToNull(request.getDescription()))
+                .electricMeter(resolveMeter(companyId, request.getElectricMeterId()))
                 .createdOn(Instant.now())
                 .build();
 
@@ -69,6 +73,10 @@ public class CompressorService {
 
         if (request.getName() != null) compressor.setName(requireText(request.getName(), "Compressor name"));
         if (request.getDescription() != null) compressor.setDescription(trimToNull(request.getDescription()));
+        // null = keep, 0 = detach, >0 = attach that meter.
+        if (request.getElectricMeterId() != null) {
+            compressor.setElectricMeter(resolveMeter(companyId, request.getElectricMeterId()));
+        }
 
         return toResponse(compressorRepository.save(compressor));
     }
@@ -158,6 +166,14 @@ public class CompressorService {
                         HttpStatus.NOT_FOUND, "Compressor with id " + id + " not found"));
     }
 
+    /** null/0 detaches the meter; anything else must belong to the same company. */
+    private ElectricMeter resolveMeter(Integer companyId, Integer meterId) {
+        if (meterId == null || meterId <= 0) return null;
+        return electricMeterRepository.findByIdAndCompany_Id(meterId, companyId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Electric meter with id " + meterId + " not found"));
+    }
+
     private Instant parseInstant(String date, String time) {
         if (date == null || date.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Date is required");
@@ -206,6 +222,8 @@ public class CompressorService {
                 .archived(Boolean.TRUE.equals(compressor.getArchived()))
                 .name(compressor.getName())
                 .description(compressor.getDescription())
+                .electricMeterId(compressor.getElectricMeter() != null ? compressor.getElectricMeter().getId() : null)
+                .electricMeterName(compressor.getElectricMeter() != null ? compressor.getElectricMeter().getName() : null)
                 .totalProduced(total)
                 .dailyAverage(total / days)
                 .createdAt(compressor.getCreatedOn().atZone(ZoneId.systemDefault()).toLocalDate().toString())

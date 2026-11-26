@@ -12,4 +12,6 @@ import lombok.NoArgsConstructor;
 public class UpdateCompressorRequest {
     private String name;
     private String description;
+    /** Send 0 (or omit) to detach the meter; null keeps the current one. */
+    private Integer electricMeterId;
 }
