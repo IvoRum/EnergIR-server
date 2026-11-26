@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.time.Instant;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,8 +23,12 @@ public class ReportController {
     private final CompanyService companyService;
 
     @GetMapping
-    public ResponseEntity<ReportResponse> getReports(Authentication authentication) {
+    public ResponseEntity<ReportResponse> getReports(
+            Authentication authentication,
+            @RequestParam(name = "from", required = false) Instant from,
+            @RequestParam(name = "to", required = false) Instant to
+    ) {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
-        return ResponseEntity.ok(reportService.getReports(companyId));
+        return ResponseEntity.ok(reportService.getReports(companyId, from, to));
     }
 }

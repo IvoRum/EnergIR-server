@@ -43,9 +43,17 @@ public class ReportService {
     private final ProductionRecordRepository productionRecordRepository;
 
     public ReportResponse getReports(Integer companyId) {
+        return getReports(companyId, null, null);
+    }
+
+    /**
+     * Reports for a company, optionally narrowed to [from, to). When the range
+     * is omitted every stored reading is returned (the dashboard then filters).
+     */
+    public ReportResponse getReports(Integer companyId, Instant from, Instant to) {
         return ReportResponse.builder()
                 .generatedAt(Instant.now())
-                .energy(buildEnergy(companyId))
+                .energy(buildEnergy(companyId, from, to))
                 .water(buildWater(companyId))
                 .gas(buildGas(companyId))
                 .solar(buildSolar(companyId))
@@ -53,7 +61,7 @@ public class ReportService {
                 .build();
     }
 
-    private List<ReportResponse.EnergyMeter> buildEnergy(Integer companyId) {
+    private List<ReportResponse.EnergyMeter> buildEnergy(Integer companyId, Instant from, Instant to) {
         return electricMeterRepository.findAllByCompany_IdOrderByIdAsc(companyId).stream()
                 .map(meter -> ReportResponse.EnergyMeter.builder()
                         .id(meter.getId())
@@ -62,6 +70,8 @@ public class ReportService {
                         .groupName(null)
                         .unit("kWh")
                         .readings(electricReadingRepository.findByMeter_IdOrderByCreatedOnAsc(meter.getId()).stream()
+                                .filter(reading -> from == null || !reading.getCreatedOn().isBefore(from))
+                                .filter(reading -> to == null || reading.getCreatedOn().isBefore(to))
                                 .map(reading -> ReportResponse.EnergyReading.builder()
                                         .id(reading.getId())
                                         .recordedOn(reading.getCreatedOn())
