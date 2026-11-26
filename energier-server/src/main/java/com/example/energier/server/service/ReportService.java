@@ -4,6 +4,8 @@ import com.example.energier.server.model.responce.ReportResponse;
 import com.example.energier.server.persistence.GasMeter;
 import com.example.energier.server.persistence.GasReading;
 import com.example.energier.server.persistence.ProductionRecord;
+import com.example.energier.server.persistence.SolarPanel;
+import com.example.energier.server.persistence.SolarReading;
 import com.example.energier.server.persistence.WaterMeter;
 import com.example.energier.server.persistence.WaterReading;
 import com.example.energier.server.repository.ElectricMeterEnergyReadingRepository;
@@ -12,6 +14,8 @@ import com.example.energier.server.repository.GasMeterRepository;
 import com.example.energier.server.repository.GasReadingRepository;
 import com.example.energier.server.repository.ProductRepository;
 import com.example.energier.server.repository.ProductionRecordRepository;
+import com.example.energier.server.repository.SolarPanelRepository;
+import com.example.energier.server.repository.SolarReadingRepository;
 import com.example.energier.server.repository.WaterMeterRepository;
 import com.example.energier.server.repository.WaterReadingRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +37,8 @@ public class ReportService {
     private final WaterReadingRepository waterReadingRepository;
     private final GasMeterRepository gasMeterRepository;
     private final GasReadingRepository gasReadingRepository;
+    private final SolarPanelRepository solarPanelRepository;
+    private final SolarReadingRepository solarReadingRepository;
     private final ProductRepository productRepository;
     private final ProductionRecordRepository productionRecordRepository;
 
@@ -42,6 +48,7 @@ public class ReportService {
                 .energy(buildEnergy(companyId))
                 .water(buildWater(companyId))
                 .gas(buildGas(companyId))
+                .solar(buildSolar(companyId))
                 .production(buildProduction(companyId))
                 .build();
     }
@@ -132,6 +139,41 @@ public class ReportService {
                                     .map(reading -> ReportResponse.GasReading.builder()
                                             .id(reading.getId())
                                             .value(reading.getValue())
+                                            .recordedOn(reading.getRecordedOn())
+                                            .build())
+                                    .toList())
+                            .build();
+                })
+                .toList();
+    }
+
+    private List<ReportResponse.SolarPanel> buildSolar(Integer companyId) {
+        Instant monthAgo = Instant.now().minus(30, ChronoUnit.DAYS);
+
+        return solarPanelRepository.findAllByCompany_IdOrderByIdAsc(companyId).stream()
+                .map(panel -> {
+                    List<SolarReading> readings =
+                            solarReadingRepository.findByPanel_IdOrderByRecordedOnAsc(panel.getId());
+                    double monthlyTotal = readings.stream()
+                            .filter(reading -> !reading.getRecordedOn().isBefore(monthAgo))
+                            .mapToDouble(SolarReading::getPowerOutput)
+                            .sum();
+
+                    return ReportResponse.SolarPanel.builder()
+                            .id(panel.getId())
+                            .name(panel.getName())
+                            .location(panel.getLocation())
+                            .groupName(panel.getGroup() != null ? panel.getGroup().getName() : null)
+                            .unit(panel.getUnit())
+                            .capacity(panel.getCapacity())
+                            .currentOutput(panel.getCurrentOutput())
+                            .monthlyTotal(monthlyTotal)
+                            .dailyAverage(monthlyTotal / 30.0)
+                            .readings(readings.stream()
+                                    .map(reading -> ReportResponse.SolarReading.builder()
+                                            .id(reading.getId())
+                                            .powerOutput(reading.getPowerOutput())
+                                            .irradiance(reading.getIrradiance())
                                             .recordedOn(reading.getRecordedOn())
                                             .build())
                                     .toList())
