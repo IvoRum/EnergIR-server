@@ -48,6 +48,10 @@ public class ElectricMeter {
     @Column(nullable = false)
     private boolean active;
 
+    /** Soft delete: archived meters keep their readings but leave the active list. */
+    @Column(name = "archived")
+    private Boolean archived;
+
     @Column(name = "created_on", nullable = false)
     private Instant createdOn;
 }

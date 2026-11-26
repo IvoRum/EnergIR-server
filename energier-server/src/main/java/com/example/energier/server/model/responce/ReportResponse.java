@@ -23,6 +23,7 @@ public class ReportResponse {
     private List<EnergyMeter> energy;
     private List<WaterMeter> water;
     private List<GasMeter> gas;
+    private List<SolarPanel> solar;
     private List<ProductionProduct> production;
 
     @Data
@@ -106,6 +107,34 @@ public class ReportResponse {
     public static class GasReading {
         private Long id;
         private double value;
+        private Instant recordedOn;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class SolarPanel {
+        private Integer id;
+        private String name;
+        private String location;
+        private String groupName;
+        private String unit;
+        private double capacity;
+        private double currentOutput;
+        private double monthlyTotal;
+        private double dailyAverage;
+        private List<SolarReading> readings;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class SolarReading {
+        private Long id;
+        private double powerOutput;
+        private Double irradiance;
         private Instant recordedOn;
     }
 

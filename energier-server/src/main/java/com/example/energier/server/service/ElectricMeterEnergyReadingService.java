@@ -2,6 +2,7 @@ package com.example.energier.server.service;
 
 import com.example.energier.server.model.request.CreateElectricMeterEnergyReadingRequest;
 import com.example.energier.server.model.request.CreateMeterReadingRequest;
+import com.example.energier.server.model.request.UpdateElectricMeterEnergyReadingRequest;
 import com.example.energier.server.model.responce.ElectricMeterEnergyReadingResponse;
 import com.example.energier.server.persistence.ElectricMeter;
 import com.example.energier.server.persistence.ElectricMeterEnergyReading;
@@ -22,6 +23,9 @@ import java.util.List;
 @Transactional
 @RequiredArgsConstructor
 public class ElectricMeterEnergyReadingService {
+
+    /** Every energy counter column is stored in watts; the UI shows kWh. */
+    private static final double STORED_UNITS_PER_KWH = 1000.0;
 
     private final ElectricMeterEnergyReadingRepository readingRepository;
     private final ElectricMeterRepository meterRepository;
@@ -75,6 +79,10 @@ public class ElectricMeterEnergyReadingService {
         }
 
         double kwh = toKwh(request.getValue(), request.getUnit());
+        // Counters are stored in watts, the same unit the edge devices push, so
+        // scale the manual kWh entry to match. (The dashboard divides by 1000
+        // again for display, so a manual "100 kWh" reads back as 100 kWh.)
+        double stored = kwh * STORED_UNITS_PER_KWH;
         Instant createdOn = request.getCreatedOn() != null ? request.getCreatedOn() : Instant.now();
 
         touchDevice(meter);
@@ -112,7 +120,7 @@ public class ElectricMeterEnergyReadingService {
         double base = latest != null
                 ? latest.getTotalActiveEnergyImportTariff1() + latest.getTotalActiveEnergyImportTariff2()
                 : 0.0;
-        double newTotal = base + kwh;
+        double newTotal = base + stored;
 
         ElectricMeterEnergyReading reading = ElectricMeterEnergyReading.builder()
                 .meter(meter)
@@ -130,6 +138,54 @@ public class ElectricMeterEnergyReadingService {
                 .build();
 
         return toResponse(readingRepository.save(reading));
+    }
+
+    /** Edits one stored reading. Null fields keep their stored value. */
+    public ElectricMeterEnergyReadingResponse updateReading(
+            Integer companyId,
+            Integer meterId,
+            Long readingId,
+            UpdateElectricMeterEnergyReadingRequest request
+    ) {
+        ElectricMeter meter = meterRepository.findByIdAndCompany_Id(meterId, companyId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Meter with id " + meterId + " not found"));
+        ElectricMeterEnergyReading reading = readingRepository.findByIdAndMeter_Id(readingId, meter.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reading not found"));
+
+        if (request.getTotalActiveEnergyImportTariff1() != null)
+            reading.setTotalActiveEnergyImportTariff1(request.getTotalActiveEnergyImportTariff1());
+        if (request.getTotalActiveEnergyImportTariff2() != null)
+            reading.setTotalActiveEnergyImportTariff2(request.getTotalActiveEnergyImportTariff2());
+        if (request.getTotalActiveEnergyExportTariff1() != null)
+            reading.setTotalActiveEnergyExportTariff1(request.getTotalActiveEnergyExportTariff1());
+        if (request.getTotalActiveEnergyExportTariff2() != null)
+            reading.setTotalActiveEnergyExportTariff2(request.getTotalActiveEnergyExportTariff2());
+        if (request.getTotalReactiveEnergyImportTariff1() != null)
+            reading.setTotalReactiveEnergyImportTariff1(request.getTotalReactiveEnergyImportTariff1());
+        if (request.getTotalReactiveEnergyImportTariff2() != null)
+            reading.setTotalReactiveEnergyImportTariff2(request.getTotalReactiveEnergyImportTariff2());
+        if (request.getTotalReactiveEnergyExportTariff1() != null)
+            reading.setTotalReactiveEnergyExportTariff1(request.getTotalReactiveEnergyExportTariff1());
+        if (request.getTotalReactiveEnergyExportTariff2() != null)
+            reading.setTotalReactiveEnergyExportTariff2(request.getTotalReactiveEnergyExportTariff2());
+        if (request.getTotalApparentEnergyTariff1() != null)
+            reading.setTotalApparentEnergyTariff1(request.getTotalApparentEnergyTariff1());
+        if (request.getTotalApparentEnergyTariff2() != null)
+            reading.setTotalApparentEnergyTariff2(request.getTotalApparentEnergyTariff2());
+        if (request.getCreatedOn() != null) reading.setCreatedOn(request.getCreatedOn());
+
+        return toResponse(readingRepository.save(reading));
+    }
+
+    /** Removes one stored reading. */
+    public void deleteReading(Integer companyId, Integer meterId, Long readingId) {
+        ElectricMeter meter = meterRepository.findByIdAndCompany_Id(meterId, companyId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Meter with id " + meterId + " not found"));
+        ElectricMeterEnergyReading reading = readingRepository.findByIdAndMeter_Id(readingId, meter.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reading not found"));
+        readingRepository.delete(reading);
     }
 
     private double toKwh(double value, String unit) {

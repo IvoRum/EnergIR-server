@@ -3,7 +3,9 @@ package com.example.energier.server.controller;
 import com.example.energier.server.model.request.CreateProductGroupRequest;
 import com.example.energier.server.model.request.CreateProductRequest;
 import com.example.energier.server.model.request.CreateProductionRecordRequest;
+import com.example.energier.server.model.request.UpdateProductGroupRequest;
 import com.example.energier.server.model.request.UpdateProductRequest;
+import com.example.energier.server.model.request.UpdateProductionRecordRequest;
 import com.example.energier.server.model.responce.ProductGroupResponse;
 import com.example.energier.server.model.responce.ProductResponse;
 import com.example.energier.server.service.CompanyService;
@@ -26,9 +28,31 @@ public class ProductionController {
     private final CompanyService companyService;
 
     @GetMapping
-    public ResponseEntity<List<ProductResponse>> getAll(Authentication authentication) {
+    public ResponseEntity<List<ProductResponse>> getAll(
+            Authentication authentication,
+            @RequestParam(name = "archived", defaultValue = "false") boolean archived
+    ) {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
-        return ResponseEntity.ok(productionService.getAll(companyId));
+        return ResponseEntity.ok(productionService.getAll(companyId, archived));
+    }
+
+    /** Soft delete: keeps the product and its records, hides it from the active list. */
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<ProductResponse> archive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(productionService.setArchived(companyId, id, true));
+    }
+
+    @PutMapping("/{id}/unarchive")
+    public ResponseEntity<ProductResponse> unarchive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(productionService.setArchived(companyId, id, false));
     }
 
     @GetMapping("/groups")
@@ -115,5 +139,26 @@ public class ProductionController {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
         productionService.deleteRecord(companyId, id, recordId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/data/{recordId}")
+    public ResponseEntity<ProductResponse> updateData(
+            Authentication authentication,
+            @PathVariable Integer id,
+            @PathVariable Long recordId,
+            @RequestBody UpdateProductionRecordRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(productionService.updateRecord(companyId, id, recordId, request));
+    }
+
+    @PutMapping("/groups/{id}")
+    public ResponseEntity<ProductGroupResponse> updateGroup(
+            Authentication authentication,
+            @PathVariable Integer id,
+            @RequestBody UpdateProductGroupRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(productionService.updateGroup(companyId, id, request));
     }
 }

@@ -3,7 +3,9 @@ package com.example.energier.server.service;
 import com.example.energier.server.model.request.CreateProductGroupRequest;
 import com.example.energier.server.model.request.CreateProductRequest;
 import com.example.energier.server.model.request.CreateProductionRecordRequest;
+import com.example.energier.server.model.request.UpdateProductGroupRequest;
 import com.example.energier.server.model.request.UpdateProductRequest;
+import com.example.energier.server.model.request.UpdateProductionRecordRequest;
 import com.example.energier.server.model.responce.ProductGroupResponse;
 import com.example.energier.server.model.responce.ProductResponse;
 import com.example.energier.server.model.responce.ProductionRecordResponse;
@@ -99,6 +101,21 @@ public class ProductionService {
         productRepository.delete(product);
     }
 
+    /** Archived products keep their records; they are just hidden from the active list. */
+    public List<ProductResponse> getAll(Integer companyId, boolean archived) {
+        return productRepository.findAllByCompany_IdOrderByIdAsc(companyId).stream()
+                .filter(product -> Boolean.TRUE.equals(product.getArchived()) == archived)
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /** Soft delete / restore. Archiving keeps the production records intact. */
+    public ProductResponse setArchived(Integer companyId, Integer id, boolean archived) {
+        Product product = findProduct(companyId, id);
+        product.setArchived(archived);
+        return toResponse(productRepository.save(product));
+    }
+
     public ProductResponse addRecord(Integer companyId, Integer productId, CreateProductionRecordRequest request) {
         Product product = findProduct(companyId, productId);
 
@@ -125,6 +142,49 @@ public class ProductionService {
                 .findByIdAndProduct_Id(recordId, product.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Production record not found"));
         productionRecordRepository.delete(record);
+    }
+
+    /** Edits a stored production record (quantity, quality and/or timestamp). */
+    public ProductResponse updateRecord(
+            Integer companyId,
+            Integer productId,
+            Long recordId,
+            UpdateProductionRecordRequest request
+    ) {
+        Product product = findProduct(companyId, productId);
+        ProductionRecord record = productionRecordRepository
+                .findByIdAndProduct_Id(recordId, product.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Production record not found"));
+
+        if (request.getQuantity() != null) {
+            if (request.getQuantity() < 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quantity cannot be negative");
+            }
+            record.setQuantity(request.getQuantity());
+        }
+        if (request.getQuality() != null) {
+            record.setQuality(trimToNull(request.getQuality()));
+        }
+        if (request.getDate() != null || request.getTime() != null) {
+            String date = (request.getDate() == null || request.getDate().isBlank())
+                    ? record.getRecordedOn().atZone(ZoneId.systemDefault()).toLocalDate().toString()
+                    : request.getDate();
+            record.setRecordedOn(parseRecordedOn(date, request.getTime()));
+        }
+        productionRecordRepository.save(record);
+
+        return toResponse(product);
+    }
+
+    public ProductGroupResponse updateGroup(Integer companyId, Integer id, UpdateProductGroupRequest request) {
+        ProductGroup group = productGroupRepository.findByIdAndCompany_Id(id, companyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product group not found"));
+
+        if (request.getName() != null) group.setName(requireText(request.getName(), "Group name"));
+        if (request.getDescription() != null) group.setDescription(trimToNull(request.getDescription()));
+        if (request.getColor() != null) group.setColor(defaultIfBlank(request.getColor(), group.getColor()));
+
+        return toGroupResponse(productGroupRepository.save(group));
     }
 
     public void deleteGroup(Integer companyId, Integer id) {
@@ -237,6 +297,7 @@ public class ProductionService {
                 .unit(product.getUnit())
                 .totalProduced(total)
                 .dailyAverage(dailyAverage)
+                .archived(Boolean.TRUE.equals(product.getArchived()))
                 .createdAt(product.getCreatedOn().atZone(ZoneId.systemDefault()).toLocalDate().toString())
                 .lastUpdated(lastUpdated.toString())
                 .productionData(records.stream().map(this::toRecordResponse).toList())

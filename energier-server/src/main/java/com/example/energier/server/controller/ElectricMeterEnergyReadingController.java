@@ -2,6 +2,7 @@ package com.example.energier.server.controller;
 
 import com.example.energier.server.model.request.CreateElectricMeterEnergyReadingRequest;
 import com.example.energier.server.model.request.CreateMeterReadingRequest;
+import com.example.energier.server.model.request.UpdateElectricMeterEnergyReadingRequest;
 import com.example.energier.server.model.responce.ElectricMeterEnergyReadingResponse;
 import com.example.energier.server.service.CompanyService;
 import com.example.energier.server.service.ElectricMeterEnergyReadingService;
@@ -57,5 +58,28 @@ public class ElectricMeterEnergyReadingController {
 
         int effectiveLimit = limit == null ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
         return ResponseEntity.ok(readingService.getHistory(meterId, since, effectiveLimit));
+    }
+
+    /** Corrects one stored reading (cumulative counters and/or timestamp). */
+    @PutMapping("/api/v1/meters/{meterId}/readings/{readingId}")
+    public ResponseEntity<ElectricMeterEnergyReadingResponse> updateReading(
+            Authentication authentication,
+            @PathVariable Integer meterId,
+            @PathVariable Long readingId,
+            @RequestBody UpdateElectricMeterEnergyReadingRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(readingService.updateReading(companyId, meterId, readingId, request));
+    }
+
+    @DeleteMapping("/api/v1/meters/{meterId}/readings/{readingId}")
+    public ResponseEntity<Void> deleteReading(
+            Authentication authentication,
+            @PathVariable Integer meterId,
+            @PathVariable Long readingId
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        readingService.deleteReading(companyId, meterId, readingId);
+        return ResponseEntity.noContent().build();
     }
 }

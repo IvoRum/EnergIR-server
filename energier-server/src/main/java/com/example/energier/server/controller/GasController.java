@@ -3,7 +3,9 @@ package com.example.energier.server.controller;
 import com.example.energier.server.model.request.CreateGasGroupRequest;
 import com.example.energier.server.model.request.CreateGasMeterRequest;
 import com.example.energier.server.model.request.CreateGasReadingRequest;
+import com.example.energier.server.model.request.UpdateGasGroupRequest;
 import com.example.energier.server.model.request.UpdateGasMeterRequest;
+import com.example.energier.server.model.request.UpdateGasReadingRequest;
 import com.example.energier.server.model.responce.GasGroupResponse;
 import com.example.energier.server.model.responce.GasMeterResponse;
 import com.example.energier.server.service.CompanyService;
@@ -26,9 +28,12 @@ public class GasController {
     private final CompanyService companyService;
 
     @GetMapping
-    public ResponseEntity<List<GasMeterResponse>> getAll(Authentication authentication) {
+    public ResponseEntity<List<GasMeterResponse>> getAll(
+            Authentication authentication,
+            @RequestParam(name = "archived", defaultValue = "false") boolean archived
+    ) {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
-        return ResponseEntity.ok(gasService.getAll(companyId));
+        return ResponseEntity.ok(gasService.getAll(companyId, archived));
     }
 
     @GetMapping("/groups")
@@ -96,6 +101,25 @@ public class GasController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Soft delete: keeps the meter and its readings, hides it from the active list. */
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<GasMeterResponse> archive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(gasService.setArchived(companyId, id, true));
+    }
+
+    @PutMapping("/{id}/unarchive")
+    public ResponseEntity<GasMeterResponse> unarchive(
+            Authentication authentication,
+            @PathVariable Integer id
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(gasService.setArchived(companyId, id, false));
+    }
+
     @PostMapping("/{id}/data")
     public ResponseEntity<GasMeterResponse> addReading(
             Authentication authentication,
@@ -115,5 +139,26 @@ public class GasController {
         Integer companyId = companyService.requireCompanyId(authentication.getName());
         gasService.deleteReading(companyId, id, readingId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/data/{readingId}")
+    public ResponseEntity<GasMeterResponse> updateReading(
+            Authentication authentication,
+            @PathVariable Integer id,
+            @PathVariable Long readingId,
+            @RequestBody UpdateGasReadingRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(gasService.updateReading(companyId, id, readingId, request));
+    }
+
+    @PutMapping("/groups/{id}")
+    public ResponseEntity<GasGroupResponse> updateGroup(
+            Authentication authentication,
+            @PathVariable Integer id,
+            @RequestBody UpdateGasGroupRequest request
+    ) {
+        Integer companyId = companyService.requireCompanyId(authentication.getName());
+        return ResponseEntity.ok(gasService.updateGroup(companyId, id, request));
     }
 }

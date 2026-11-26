@@ -14,6 +14,8 @@ import java.util.List;
 @NoArgsConstructor
 public class ElectricMeterResponse {
     private Integer id;
+    /** Hidden from the active list; separate from the `active` (online) flag. */
+    private boolean archived;
     private String edgeId;
     private Integer edgeMeterId;
     private Integer address;
